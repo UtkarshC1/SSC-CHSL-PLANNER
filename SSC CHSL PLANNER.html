@@ -1,0 +1,810 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>SSC CHSL '26 — Zero-to-Hero Planner</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;600;700;800&display=swap" rel="stylesheet" />
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['Plus Jakarta Sans', 'sans-serif'],
+            mono: ['JetBrains Mono', 'monospace'],
+          },
+          animation: {
+            'blob': 'blob 14s infinite alternate',
+            'shimmer': 'shimmer 2.5s linear infinite',
+            'float': 'float 4s ease-in-out infinite',
+          },
+          keyframes: {
+            blob: {
+              '0%': { transform: 'translate(0px, 0px) scale(1)' },
+              '33%': { transform: 'translate(40px, -50px) scale(1.1)' },
+              '66%': { transform: 'translate(-30px, 30px) scale(0.95)' },
+              '100%': { transform: 'translate(10px, -20px) scale(1.05)' },
+            },
+            shimmer: {
+              '0%': { backgroundPosition: '-200% 0' },
+              '100%': { backgroundPosition: '200% 0' },
+            },
+            float: {
+              '0%, 100%': { transform: 'translateY(0)' },
+              '50%': { transform: 'translateY(-4px)' }
+            }
+          }
+        }
+      }
+    };
+  </script>
+  <style>
+    body {
+      background-color: #f4f7fb;
+      color: #0f172a;
+      overflow-x: hidden;
+    }
+
+    .aurora-bg {
+      position: fixed;
+      inset: 0;
+      z-index: -1;
+      overflow: hidden;
+      background: radial-gradient(circle at 50% 0%, #ffffff 0%, #f1f5f9 100%);
+    }
+    .aurora-blob-1 {
+      position: absolute; top: -12%; left: -8%; width: 55vw; height: 55vw;
+      background: radial-gradient(circle, rgba(56, 189, 248, 0.25) 0%, rgba(59, 130, 246, 0) 70%);
+      filter: blur(60px);
+    }
+    .aurora-blob-2 {
+      position: absolute; top: 15%; right: -12%; width: 50vw; height: 50vw;
+      background: radial-gradient(circle, rgba(168, 85, 247, 0.22) 0%, rgba(236, 72, 153, 0) 70%);
+      filter: blur(60px);
+      animation-delay: 2s;
+    }
+    .aurora-blob-3 {
+      position: absolute; bottom: -18%; left: 18%; width: 55vw; height: 55vw;
+      background: radial-gradient(circle, rgba(16, 185, 129, 0.20) 0%, rgba(20, 184, 166, 0) 70%);
+      filter: blur(70px);
+      animation-delay: 4s;
+    }
+
+    .glass-panel {
+      background: rgba(255, 255, 255, 0.72);
+      backdrop-filter: blur(24px) saturate(190%);
+      -webkit-backdrop-filter: blur(24px) saturate(190%);
+      border: 1px solid rgba(255, 255, 255, 0.9);
+      box-shadow: 0 10px 35px -5px rgba(15, 23, 42, 0.05), 0 2px 6px -1px rgba(15, 23, 42, 0.02), inset 0 1px 0 0 rgba(255, 255, 255, 1);
+    }
+
+    .glass-card {
+      background: rgba(255, 255, 255, 0.78);
+      backdrop-filter: blur(20px) saturate(180%);
+      -webkit-backdrop-filter: blur(20px) saturate(180%);
+      border: 1px solid rgba(255, 255, 255, 0.95);
+      box-shadow: 0 4px 20px -2px rgba(15, 23, 42, 0.04), inset 0 1px 0 0 rgba(255, 255, 255, 1);
+      transition: all 0.28s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+    .glass-card:hover {
+      transform: translateY(-5px);
+      background: rgba(255, 255, 255, 0.92);
+      box-shadow: 0 20px 40px -12px rgba(15, 23, 42, 0.1), 0 0 0 1px rgba(99, 102, 241, 0.25);
+    }
+
+    .glass-nav {
+      background: rgba(255, 255, 255, 0.8);
+      backdrop-filter: blur(24px) saturate(200%);
+      -webkit-backdrop-filter: blur(24px) saturate(200%);
+      border-bottom: 1px solid rgba(226, 232, 240, 0.8);
+    }
+
+    input[type="range"] { -webkit-appearance: none; appearance: none; width: 100%; background: transparent; }
+    input[type="range"]::-webkit-slider-runnable-track { width: 100%; height: 8px; background: rgba(226, 232, 240, 0.9); border-radius: 999px; box-shadow: inset 0 1px 2px rgba(0,0,0,0.06); }
+    input[type="range"]::-webkit-slider-thumb { -webkit-appearance: none; appearance: none; height: 20px; width: 20px; border-radius: 50%; background: linear-gradient(135deg, #4f46e5, #0ea5e9); cursor: pointer; margin-top: -6px; border: 3px solid #ffffff; box-shadow: 0 3px 8px rgba(79, 70, 229, 0.4); transition: transform 0.15s ease; }
+    input[type="range"]::-webkit-slider-thumb:hover { transform: scale(1.18); }
+
+    ::-webkit-scrollbar { width: 8px; height: 8px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 999px; }
+    ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+    .no-scrollbar::-webkit-scrollbar { display: none; }
+    .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+  </style>
+</head>
+<body class="antialiased selection:bg-indigo-500 selection:text-white min-h-screen flex flex-col">
+
+  <div class="aurora-bg">
+    <div class="aurora-blob-1 animate-blob"></div>
+    <div class="aurora-blob-2 animate-blob"></div>
+    <div class="aurora-blob-3 animate-blob"></div>
+  </div>
+
+  <div id="toast-container" class="fixed bottom-6 right-6 z-50 flex flex-col gap-2.5 pointer-events-none"></div>
+
+  <header class="sticky top-0 z-40 glass-nav">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-20 flex items-center justify-between gap-4">
+      <div class="flex items-center gap-3.5">
+        <div class="w-12 h-12 rounded-2xl bg-gradient-to-tr from-rose-600 via-pink-600 to-orange-500 flex items-center justify-center text-white font-extrabold text-lg shadow-lg shadow-rose-500/30 ring-2 ring-white shrink-0 animate-float">
+          SSC
+        </div>
+        <div>
+          <div class="flex items-center gap-2">
+            <h1 class="text-lg sm:text-xl font-extrabold tracking-tight text-slate-900">SSC CHSL Target 2026</h1>
+            <span class="hidden md:inline-flex items-center px-2.5 py-0.5 rounded-full text-[11px] font-extrabold bg-indigo-50 text-indigo-700 border border-indigo-200/80">
+              General Female target: 155+
+            </span>
+          </div>
+          <p class="text-xs font-semibold text-slate-500 mt-0.5">PW Books: Game Changer Combo + 20-Year PYQs • Weekly Mocks</p>
+        </div>
+      </div>
+
+      <div class="flex items-center gap-3">
+        <div class="flex items-center gap-3 bg-white/90 border border-rose-200/80 px-3.5 py-2 rounded-2xl shadow-sm">
+          <span class="relative flex h-2.5 w-2.5">
+            <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-rose-400 opacity-75"></span>
+            <span class="relative inline-flex rounded-full h-2.5 w-2.5 bg-rose-500"></span>
+          </span>
+          <div>
+            <div class="flex items-center gap-2">
+              <span class="text-[10px] font-extrabold uppercase tracking-wider text-rose-600">Study Window Left</span>
+              <span id="day-energy-pct" class="text-[10px] font-mono font-bold text-slate-400 hidden sm:inline">0%</span>
+            </div>
+            <div id="countdown-10pm" class="text-sm sm:text-base font-extrabold font-mono text-slate-900 leading-none mt-0.5">--:--:--</div>
+          </div>
+        </div>
+
+        <div class="hidden sm:flex items-center gap-1.5">
+          <button id="btn-export" title="Export Backup JSON" class="p-2.5 rounded-xl text-xs font-bold text-slate-700 bg-white/80 hover:bg-white border border-slate-200/80 shadow-sm transition flex items-center gap-1.5">
+            <svg class="w-4 h-4 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
+            <span class="hidden lg:inline">Backup</span>
+          </button>
+          <label for="input-import" title="Restore JSON Backup" class="cursor-pointer p-2.5 rounded-xl text-xs font-bold text-slate-700 bg-white/80 hover:bg-white border border-slate-200/80 shadow-sm transition flex items-center gap-1.5">
+            <svg class="w-4 h-4 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"/></svg>
+            <span class="hidden lg:inline">Restore</span>
+            <input id="input-import" type="file" accept=".json" class="hidden" />
+          </label>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <main class="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
+
+    <!-- Today's Mission Spotlight Banner -->
+    <section class="glass-panel rounded-3xl p-5 sm:p-6 border-l-4 border-l-rose-600 flex flex-col lg:flex-row items-start lg:items-center justify-between gap-5 relative overflow-hidden">
+      <div class="flex items-start sm:items-center gap-4">
+        <div class="w-12 h-12 rounded-2xl bg-rose-50 border border-rose-100 text-rose-600 flex items-center justify-center font-extrabold text-xl shrink-0">
+          🎯
+        </div>
+        <div>
+          <div class="flex flex-wrap items-center gap-2">
+            <span class="text-[11px] font-extrabold uppercase tracking-wider px-2.5 py-0.5 rounded-md bg-rose-600 text-white">Next Active Target</span>
+            <span id="spotlight-day-badge" class="text-xs font-bold font-mono text-slate-500">Day 1</span>
+            <span id="spotlight-subj-badge" class="text-[11px] font-extrabold uppercase px-2 py-0.5 rounded-md bg-blue-100 text-blue-700">Quant</span>
+          </div>
+          <h2 id="spotlight-title" class="text-lg sm:text-xl font-extrabold text-slate-900 mt-1">Number Systems & Percentages</h2>
+          <p id="spotlight-subtitle" class="text-xs font-medium text-slate-500 mt-0.5">Revise fundamental operations + 50 PYQs.</p>
+        </div>
+      </div>
+      <div class="flex flex-wrap items-center gap-2.5 w-full lg:w-auto justify-end border-t lg:border-t-0 pt-3 lg:pt-0 border-slate-200/60">
+        <button id="spotlight-jump-btn" class="px-4 py-2.5 rounded-xl text-xs font-extrabold text-white bg-slate-900 hover:bg-slate-800 shadow-sm transition">
+          Locate Task ↓
+        </button>
+      </div>
+    </section>
+
+    <!-- Top Stats -->
+    <section class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
+      <div class="glass-panel rounded-3xl p-6 relative overflow-hidden">
+        <div class="flex justify-between items-start">
+          <div>
+            <span class="text-[11px] font-extrabold uppercase tracking-wider text-rose-600 bg-rose-50 px-2.5 py-1 rounded-lg">Est. Tier 1 Exam</span>
+            <div class="flex items-baseline gap-2 mt-3">
+              <span id="stat-exam-days" class="text-4xl font-extrabold font-mono tracking-tight text-slate-900">180</span>
+              <span class="text-xs font-bold text-slate-500 uppercase">Days Left</span>
+            </div>
+          </div>
+          <div class="w-10 h-10 rounded-2xl bg-rose-50/80 text-rose-600 flex items-center justify-center font-bold">⚡</div>
+        </div>
+        <div class="mt-4 pt-3 border-t border-slate-200/60 flex items-center justify-between text-xs font-semibold text-slate-500">
+          <span>Target: Mid 2026</span>
+          <span id="stat-total-chaps-badge" class="font-mono font-bold text-rose-600">0/60 Tasks</span>
+        </div>
+      </div>
+
+      <div class="glass-panel rounded-3xl p-6 relative overflow-hidden">
+        <div class="flex justify-between items-start">
+          <div>
+            <span class="text-[11px] font-extrabold uppercase tracking-wider text-teal-700 bg-teal-50 px-2.5 py-1 rounded-lg">PYQ Bank</span>
+            <div class="flex items-baseline gap-2 mt-3">
+              <span id="stat-total-pyq" class="text-4xl font-extrabold font-mono tracking-tight text-slate-900">0</span>
+              <span class="text-xs font-bold text-slate-500 uppercase">Solved</span>
+            </div>
+          </div>
+          <div class="w-10 h-10 rounded-2xl bg-teal-50/80 text-teal-600 flex items-center justify-center font-bold">📚</div>
+        </div>
+        <div class="mt-4 pt-3 border-t border-slate-200/60 flex items-center justify-between text-xs font-semibold text-slate-500">
+          <span>From PW 20-Year Book</span>
+          <span class="font-bold text-teal-700">Target: 3000 Qs</span>
+        </div>
+      </div>
+
+      <div class="glass-panel rounded-3xl p-6 relative overflow-hidden">
+        <div class="flex justify-between items-start">
+          <div>
+            <span class="text-[11px] font-extrabold uppercase tracking-wider text-indigo-700 bg-indigo-50 px-2.5 py-1 rounded-lg">Projected Tier 1</span>
+            <div class="flex items-baseline gap-2 mt-3">
+              <span id="proj-tier1-score" class="text-4xl font-extrabold font-mono tracking-tight text-indigo-600">0</span>
+              <span class="text-xs font-bold text-slate-400 font-mono">/ 200 Marks</span>
+            </div>
+          </div>
+          <span id="proj-tier1-pct" class="px-2.5 py-1 rounded-xl text-xs font-extrabold font-mono bg-indigo-600 text-white shadow-sm">Qualifying</span>
+        </div>
+        <div class="mt-4 pt-3 border-t border-slate-200/60 flex items-center justify-between text-xs">
+          <span id="tier1-status" class="font-extrabold text-amber-600">🔨 Building Base (Need 155+)</span>
+        </div>
+      </div>
+
+      <div class="glass-panel rounded-3xl p-6 relative overflow-hidden">
+        <div class="flex justify-between items-start">
+          <div>
+            <span class="text-[11px] font-extrabold uppercase tracking-wider text-emerald-700 bg-emerald-50 px-2.5 py-1 rounded-lg">Typing Skill Test</span>
+            <div class="flex items-baseline gap-2 mt-3">
+              <span id="typing-wpm-display" class="text-4xl font-extrabold font-mono tracking-tight text-emerald-600">15</span>
+              <span class="text-xs font-bold text-slate-400 font-mono">WPM</span>
+            </div>
+          </div>
+          <div class="w-10 h-10 rounded-2xl bg-emerald-50/80 text-emerald-600 flex items-center justify-center font-bold">⌨️</div>
+        </div>
+        <div class="mt-4 pt-3 border-t border-slate-200/60 flex items-center justify-between text-xs font-semibold text-slate-500">
+          <span>Target LDC: 35 WPM</span>
+          <span id="typing-status" class="font-extrabold text-amber-600">Needs Work</span>
+        </div>
+      </div>
+    </section>
+
+    <section class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+      <!-- Subject Mastery Breakdown -->
+      <div class="lg:col-span-7 glass-panel rounded-3xl p-6 space-y-5">
+        <div class="flex items-center justify-between border-b border-slate-200/70 pb-4">
+          <div>
+            <h2 class="text-base sm:text-lg font-extrabold text-slate-900 flex items-center gap-2">
+              <span>🔥 Tier 1 Sectional Mastery</span>
+            </h2>
+            <p class="text-xs font-medium text-slate-500">Weighted by topic completion & 50 PYQs/topic</p>
+          </div>
+        </div>
+
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <!-- Quant -->
+          <div class="p-4 rounded-2xl bg-blue-50/50 border border-blue-100/80 space-y-2.5">
+            <div class="flex justify-between items-center">
+              <div class="flex items-center gap-2">
+                <span class="w-2.5 h-2.5 rounded-full bg-blue-600"></span>
+                <span class="text-sm font-extrabold text-slate-900">Quant</span>
+              </div>
+              <span id="score-quant" class="text-xs font-extrabold font-mono text-blue-700">0 / 50</span>
+            </div>
+            <div class="w-full bg-white rounded-full h-2 overflow-hidden p-0.5 border border-blue-100">
+              <div id="bar-quant" class="bg-gradient-to-r from-blue-500 to-cyan-400 h-full rounded-full transition-all duration-500" style="width: 0%"></div>
+            </div>
+            <div class="flex justify-between text-[11px] font-bold text-slate-600 font-mono">
+              <span id="chap-quant">0/15 Topics</span>
+              <span id="pyq-quant">0 Qs</span>
+            </div>
+          </div>
+
+          <!-- English -->
+          <div class="p-4 rounded-2xl bg-emerald-50/50 border border-emerald-100/80 space-y-2.5">
+            <div class="flex justify-between items-center">
+              <div class="flex items-center gap-2">
+                <span class="w-2.5 h-2.5 rounded-full bg-emerald-600"></span>
+                <span class="text-sm font-extrabold text-slate-900">English</span>
+              </div>
+              <span id="score-english" class="text-xs font-extrabold font-mono text-emerald-700">0 / 50</span>
+            </div>
+            <div class="w-full bg-white rounded-full h-2 overflow-hidden p-0.5 border border-emerald-100">
+              <div id="bar-english" class="bg-gradient-to-r from-emerald-500 to-teal-400 h-full rounded-full transition-all duration-500" style="width: 0%"></div>
+            </div>
+            <div class="flex justify-between text-[11px] font-bold text-slate-600 font-mono">
+              <span id="chap-english">0/15 Topics</span>
+              <span id="pyq-english">0 Qs</span>
+            </div>
+          </div>
+
+          <!-- Reasoning -->
+          <div class="p-4 rounded-2xl bg-purple-50/50 border border-purple-100/80 space-y-2.5">
+            <div class="flex justify-between items-center">
+              <div class="flex items-center gap-2">
+                <span class="w-2.5 h-2.5 rounded-full bg-purple-600"></span>
+                <span class="text-sm font-extrabold text-slate-900">Reasoning</span>
+              </div>
+              <span id="score-reasoning" class="text-xs font-extrabold font-mono text-purple-700">0 / 50</span>
+            </div>
+            <div class="w-full bg-white rounded-full h-2 overflow-hidden p-0.5 border border-purple-100">
+              <div id="bar-reasoning" class="bg-gradient-to-r from-purple-500 to-fuchsia-400 h-full rounded-full transition-all duration-500" style="width: 0%"></div>
+            </div>
+            <div class="flex justify-between text-[11px] font-bold text-slate-600 font-mono">
+              <span id="chap-reasoning">0/10 Topics</span>
+              <span id="pyq-reasoning">0 Qs</span>
+            </div>
+          </div>
+
+          <!-- GA -->
+          <div class="p-4 rounded-2xl bg-amber-50/50 border border-amber-100/80 space-y-2.5">
+            <div class="flex justify-between items-center">
+              <div class="flex items-center gap-2">
+                <span class="w-2.5 h-2.5 rounded-full bg-amber-500"></span>
+                <span class="text-sm font-extrabold text-slate-900">Gen. Awareness</span>
+              </div>
+              <span id="score-ga" class="text-xs font-extrabold font-mono text-amber-700">0 / 50</span>
+            </div>
+            <div class="w-full bg-white rounded-full h-2 overflow-hidden p-0.5 border border-amber-100">
+              <div id="bar-ga" class="bg-gradient-to-r from-amber-400 to-orange-400 h-full rounded-full transition-all duration-500" style="width: 0%"></div>
+            </div>
+            <div class="flex justify-between text-[11px] font-bold text-slate-600 font-mono">
+              <span id="chap-ga">0/12 Topics</span>
+              <span id="pyq-ga">0 Qs</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Skill & Computer Modules -->
+      <div class="lg:col-span-5 glass-panel rounded-3xl p-6 flex flex-col justify-between space-y-5">
+        <div class="flex items-center justify-between border-b border-slate-200/70 pb-4">
+          <div>
+            <h2 class="text-base sm:text-lg font-extrabold text-slate-900 flex items-center gap-2">
+              <span>🖥️ Tier 2 Essential Skills</span>
+            </h2>
+            <p class="text-xs font-medium text-slate-500">Typing & Computer Knowledge</p>
+          </div>
+        </div>
+
+        <div class="p-4 rounded-2xl bg-slate-50/80 border border-slate-200/80 space-y-4">
+          <div class="flex flex-col space-y-2">
+            <div class="flex justify-between text-xs font-bold text-slate-700 mb-1.5">
+              <span>⌨️ Current Typing Speed (WPM)</span>
+              <span id="val-typing-speed" class="font-mono text-indigo-600">15 WPM</span>
+            </div>
+            <input type="range" id="slider-typing-speed" min="10" max="60" value="15" />
+            <p class="text-[10px] text-slate-500 mt-1">LDC requires 35 WPM English / 30 WPM Hindi.</p>
+          </div>
+          <hr class="border-slate-200" />
+          <div class="flex flex-col space-y-2">
+            <div class="flex justify-between text-xs font-bold text-slate-700 mb-1.5">
+              <span>💾 Computer Proficiency Prep</span>
+              <span id="val-computer-prep" class="font-mono text-indigo-600">0%</span>
+            </div>
+            <input type="range" id="slider-computer-prep" min="0" max="100" value="0" />
+            <p class="text-[10px] text-slate-500 mt-1">CPU, MS Office, Internet, Cybersecurity (PW Book).</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Sticky Command Bar -->
+    <section class="sticky top-20 z-30 glass-panel rounded-2xl p-3 flex flex-col xl:flex-row items-stretch xl:items-center justify-between gap-3">
+      <div id="status-tabs" class="flex items-center gap-1 bg-slate-200/60 p-1 rounded-xl overflow-x-auto no-scrollbar">
+        <button data-status="ALL" class="status-tab bg-white text-slate-900 shadow-sm px-3.5 py-1.5 rounded-lg text-xs font-extrabold transition whitespace-nowrap">
+          All <span id="cnt-ALL" class="ml-1 text-[10px] font-mono text-indigo-600">0</span>
+        </button>
+        <button data-status="pending" class="status-tab text-slate-600 hover:text-slate-900 px-3.5 py-1.5 rounded-lg text-xs font-bold transition whitespace-nowrap">
+          ⏳ Pending <span id="cnt-pending" class="ml-1 text-[10px] font-mono opacity-75">0</span>
+        </button>
+        <button data-status="completed" class="status-tab text-slate-600 hover:text-slate-900 px-3.5 py-1.5 rounded-lg text-xs font-bold transition whitespace-nowrap">
+          ✅ Completed <span id="cnt-completed" class="ml-1 text-[10px] font-mono opacity-75">0</span>
+        </button>
+      </div>
+
+      <div class="flex flex-col sm:flex-row items-stretch sm:items-center gap-2.5">
+        <div id="subject-tabs" class="flex items-center gap-1 bg-slate-200/60 p-1 rounded-xl overflow-x-auto no-scrollbar">
+          <button data-subj="ALL" class="subj-tab bg-white text-slate-900 shadow-sm px-3 py-1.5 rounded-lg text-xs font-extrabold transition">All Subj</button>
+          <button data-subj="QUANT" class="subj-tab text-slate-600 hover:text-blue-600 px-3 py-1.5 rounded-lg text-xs font-bold transition">Quant</button>
+          <button data-subj="ENGLISH" class="subj-tab text-slate-600 hover:text-emerald-600 px-3 py-1.5 rounded-lg text-xs font-bold transition">English</button>
+          <button data-subj="REASONING" class="subj-tab text-slate-600 hover:text-purple-600 px-3 py-1.5 rounded-lg text-xs font-bold transition">Reasoning</button>
+          <button data-subj="GA" class="subj-tab text-slate-600 hover:text-amber-600 px-3 py-1.5 rounded-lg text-xs font-bold transition">General Aw.</button>
+          <button data-subj="MOCK" class="subj-tab text-slate-600 hover:text-rose-600 px-3 py-1.5 rounded-lg text-xs font-bold transition">Mocks</button>
+        </div>
+
+        <div class="relative sm:w-64">
+          <svg class="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
+          <input id="search-input" type="text" placeholder="Search topic..." class="w-full pl-9 pr-4 py-2 rounded-xl text-xs font-bold bg-white/90 border border-slate-200/90 focus:outline-none focus:ring-2 focus:ring-indigo-500/40 transition" />
+        </div>
+      </div>
+    </section>
+
+    <!-- Master Grid -->
+    <section id="roadmap-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 pb-20">
+      <!-- Populated dynamically via JS -->
+    </section>
+
+  </main>
+
+  <script>
+    /**
+     * SSC CHSL Curriculum Base (Sample representing the core syllabus)
+     */
+    const SCHEDULE_DATA = [
+      { id: 't1', dayNum: 1, subject: 'QUANT', title: 'Number Systems & Computation', note: 'Whole numbers, decimals, fractions & relationships.', book: 'PW Game Changer / 20-Year PYQ' },
+      { id: 't2', dayNum: 2, subject: 'ENGLISH', title: 'Spot the Error & Fill in Blanks', note: 'Focus on basic grammar rules, subject-verb agreement.', book: '20-Year PYQ' },
+      { id: 't3', dayNum: 3, subject: 'REASONING', title: 'Semantic & Symbolic Analogy', note: 'Verbal reasoning basics.', book: 'PW Game Changer' },
+      { id: 't4', dayNum: 4, subject: 'GA', title: 'History & Culture (Ancient India)', note: 'Lucent or PW General Awareness book.', book: 'General Awareness Book' },
+      { id: 't5', dayNum: 5, subject: 'QUANT', title: 'Percentages & Ratio/Proportion', note: 'Core arithmetic building blocks.', book: 'PW Game Changer' },
+      { id: 't6', dayNum: 6, subject: 'ENGLISH', title: 'Synonyms, Homonyms & Antonyms', note: 'Memorize at least 50 a day.', book: 'Vocabulary Notes' },
+      { id: 't7', dayNum: 7, subject: 'MOCK', type: 'MOCK', title: 'Tier 1 Full Mock #1', note: '100 Questions in 60 Mins. Analyze mistakes.' },
+      
+      { id: 't8', dayNum: 8, subject: 'REASONING', title: 'Coding-Decoding & Word Building', note: 'Alphabet sequence and numerical operations.', book: '20-Year PYQ' },
+      { id: 't9', dayNum: 9, subject: 'GA', title: 'Geography & Environment', note: 'Indian geography, neighboring countries.', book: 'General Awareness Book' },
+      { id: 't10', dayNum: 10, subject: 'QUANT', title: 'Averages, Simple & Compound Interest', note: 'Calculation intensive. Use short tricks.', book: 'PW Game Changer' },
+      { id: 't11', dayNum: 11, subject: 'ENGLISH', title: 'Idioms, Phrases & One-word Substitution', note: 'High yield for vocabulary section.', book: '20-Year PYQ' },
+      { id: 't12', dayNum: 12, subject: 'QUANT', title: 'Profit & Loss, Discount, Partnership', note: 'Directly linked to percentages.', book: 'PW Game Changer' },
+      { id: 't13', dayNum: 13, subject: 'REASONING', title: 'Venn Diagrams & Syllogism', note: 'Drawing inferences and classification.', book: 'PW Game Changer' },
+      { id: 't14', dayNum: 14, subject: 'MOCK', type: 'MOCK', title: 'Tier 1 Full Mock #2', note: 'Focus on time management (Target 60 mins).' },
+
+      { id: 't15', dayNum: 15, subject: 'GA', title: 'Polity & Economic Scene', note: 'Constitution, Articles, and basic economics.', book: 'General Awareness Book' },
+      { id: 't16', dayNum: 16, subject: 'QUANT', title: 'Time, Distance & Time, Work', note: 'Trains, boats, pipes & cisterns.', book: '20-Year PYQ' },
+      { id: 't17', dayNum: 17, subject: 'ENGLISH', title: 'Active/Passive Voice & Direct/Indirect', note: 'Crucial for Tier 1 and Tier 2.', book: 'Grammar Book' },
+      { id: 't18', dayNum: 18, subject: 'QUANT', title: 'Basic Algebraic Identities & Surds', note: 'School level algebra, linear equations.', book: 'PW Game Changer' },
+      { id: 't19', dayNum: 19, subject: 'REASONING', title: 'Figural Classification & Pattern Folding', note: 'Non-verbal reasoning.', book: '20-Year PYQ' },
+      { id: 't20', dayNum: 20, subject: 'GA', title: 'General Science & Scientific Research', note: 'Physics, Chemistry, Bio basics.', book: 'General Awareness Book' },
+      { id: 't21', dayNum: 21, subject: 'MOCK', type: 'MOCK', title: 'Tier 1 Full Mock #3', note: 'Track score improvement vs Week 2.' },
+
+      { id: 't22', dayNum: 22, subject: 'QUANT', title: 'Geometry: Triangles, Circles, Tangents', note: 'Centers of triangle, congruence, chords.', book: 'PW Game Changer' },
+      { id: 't23', dayNum: 23, subject: 'ENGLISH', title: 'Sentence Improvement & Shuffling', note: 'PQRS jumbled sentences.', book: '20-Year PYQ' },
+      { id: 't24', dayNum: 24, subject: 'QUANT', title: 'Mensuration: 2D & 3D Shapes', note: 'Polygons, Prism, Cone, Cylinder, Sphere.', book: 'PW Game Changer' },
+      { id: 't25', dayNum: 25, subject: 'REASONING', title: 'Number & Semantic Series', note: 'Identify patterns quickly.', book: '20-Year PYQ' },
+      { id: 't26', dayNum: 26, subject: 'QUANT', title: 'Trigonometry & Heights/Distances', note: 'Standard identities and ratios.', book: 'PW Game Changer' },
+      { id: 't27', dayNum: 27, subject: 'ENGLISH', title: 'Cloze Passage & Comprehension', note: 'Reading speed and context understanding.', book: '20-Year PYQ' },
+      { id: 't28', dayNum: 28, subject: 'MOCK', type: 'MOCK', title: 'Tier 1 Full Mock #4', note: 'Aiming for 140+ Marks this week.' },
+
+      { id: 't29', dayNum: 29, subject: 'GA', title: 'Current Affairs (Last 6 Months)', note: 'Sports, Awards, Appointments.', book: 'Monthly CA PDF' },
+      { id: 't30', dayNum: 30, subject: 'QUANT', title: 'Statistical Charts (DI)', note: 'Histogram, Bar Diagram, Pie-Chart.', book: '20-Year PYQ' }
+    ];
+
+    const STORAGE_KEY = 'ssc_chsl_planner_v1';
+
+    let state = {
+      statusFilter: 'ALL',
+      subjFilter: 'ALL',
+      search: '',
+      typingSpeed: 15,
+      computerPrep: 0,
+      days: {}
+    };
+
+    function initState() {
+      try {
+        const saved = localStorage.getItem(STORAGE_KEY);
+        if (saved) {
+          const parsed = JSON.parse(saved);
+          state = { ...state, ...parsed };
+        }
+      } catch (e) { console.error(e); }
+
+      SCHEDULE_DATA.forEach(d => {
+        if (!state.days[d.id]) {
+          state.days[d.id] = {
+            status: 'pending', 
+            pyqs: 0,
+            mockScore: ''
+          };
+        }
+      });
+
+      document.getElementById('slider-typing-speed').value = state.typingSpeed;
+      document.getElementById('slider-computer-prep').value = state.computerPrep;
+    }
+
+    function saveState() {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+      updateDashboard();
+    }
+
+    function showToast(msg, icon = '✨') {
+      const container = document.getElementById('toast-container');
+      const el = document.createElement('div');
+      el.className = 'glass-panel px-4 py-3 rounded-2xl shadow-xl border border-indigo-100 text-xs font-extrabold text-slate-900 flex items-center gap-2.5 transform translate-y-3 opacity-0 transition-all duration-300';
+      el.innerHTML = `<span class="text-base">${icon}</span><span>${msg}</span>`;
+      container.appendChild(el);
+      requestAnimationFrame(() => el.classList.remove('translate-y-3', 'opacity-0'));
+      setTimeout(() => {
+        el.classList.add('translate-y-3', 'opacity-0');
+        setTimeout(() => el.remove(), 300);
+      }, 2400);
+    }
+
+    function fireConfetti() {
+      if (typeof confetti === 'function') {
+        confetti({ particleCount: 55, spread: 65, origin: { y: 0.75 } });
+      }
+    }
+
+    function updateTimers() {
+      const now = new Date();
+      const tenPM = new Date(now);
+      tenPM.setHours(22, 0, 0, 0);
+      const timerEl = document.getElementById('countdown-10pm');
+      const pctEl = document.getElementById('day-energy-pct');
+
+      if (now >= tenPM) {
+        timerEl.textContent = 'REST TIME 🌙';
+        pctEl.textContent = 'Done';
+      } else {
+        const diffMs = tenPM - now;
+        const hrs = Math.floor(diffMs / (1000 * 60 * 60));
+        const mins = Math.floor((diffMs % (1000 * 60 * 60)) / (1000 * 60));
+        const secs = Math.floor((diffMs % (1000 * 60)) / 1000);
+        timerEl.textContent = `${String(hrs).padStart(2, '0')}h : ${String(mins).padStart(2, '0')}m : ${String(secs).padStart(2, '0')}s`;
+      }
+    }
+
+    function updateDashboard() {
+      const subjStats = {
+        QUANT: { total: 0, done: 0, pyqTot: 0, pyqDone: 0 },
+        ENGLISH: { total: 0, done: 0, pyqTot: 0, pyqDone: 0 },
+        REASONING: { total: 0, done: 0, pyqTot: 0, pyqDone: 0 },
+        GA: { total: 0, done: 0, pyqTot: 0, pyqDone: 0 }
+      };
+
+      const statusCounts = { ALL: SCHEDULE_DATA.length, pending: 0, completed: 0 };
+      let totalPyqs = 0;
+      let mockScores = [];
+
+      SCHEDULE_DATA.forEach(d => {
+        const s = state.days[d.id];
+        if (statusCounts[s.status] !== undefined) statusCounts[s.status]++;
+        
+        if (d.type === 'MOCK') {
+          if (s.mockScore !== '' && !isNaN(Number(s.mockScore))) {
+            mockScores.push(Number(s.mockScore));
+          }
+          return;
+        }
+
+        const pyqCapped = Math.min(50, Number(s.pyqs) || 0);
+        totalPyqs += pyqCapped;
+
+        if (subjStats[d.subject]) {
+          subjStats[d.subject].total++;
+          subjStats[d.subject].pyqTot += 50;
+          subjStats[d.subject].pyqDone += pyqCapped;
+          if (s.status === 'completed') subjStats[d.subject].done++;
+        }
+      });
+
+      Object.keys(statusCounts).forEach(k => {
+        const el = document.getElementById(`cnt-${k}`);
+        if (el) el.textContent = statusCounts[k];
+      });
+
+      const calcMarks = (st, maxMarks) => {
+        if (st.total === 0) return 0;
+        const chapRatio = st.done / st.total;
+        const pyqRatio = st.pyqDone / (st.pyqTot || 1);
+        const mastery = (chapRatio * 0.6) + (pyqRatio * 0.4);
+        return Math.round(mastery * maxMarks);
+      };
+
+      const renderSubj = (key, st) => {
+        const marks = calcMarks(st, 50);
+        document.getElementById(`score-${key}`).textContent = `${marks} / 50`;
+        document.getElementById(`chap-${key}`).textContent = `${st.done}/${st.total} Topics`;
+        document.getElementById(`pyq-${key}`).textContent = `${st.pyqDone} Qs`;
+        const pct = st.total > 0 ? (st.done / st.total) * 100 : 0;
+        document.getElementById(`bar-${key}`).style.width = `${pct}%`;
+        return marks;
+      };
+
+      const qMarks = renderSubj('quant', subjStats.QUANT);
+      const eMarks = renderSubj('english', subjStats.ENGLISH);
+      const rMarks = renderSubj('reasoning', subjStats.REASONING);
+      const gMarks = renderSubj('ga', subjStats.GA);
+
+      let projected = qMarks + eMarks + rMarks + gMarks;
+      if (mockScores.length > 0) {
+        const avgMock = mockScores.reduce((a, b) => a + b, 0) / mockScores.length;
+        projected = Math.round((projected * 0.4) + (avgMock * 0.6));
+      }
+
+      document.getElementById('proj-tier1-score').textContent = projected;
+      document.getElementById('stat-total-pyq').textContent = totalPyqs;
+      document.getElementById('stat-total-chaps-badge').textContent = `${statusCounts.completed}/${SCHEDULE_DATA.length} Tasks`;
+
+      const t1Status = document.getElementById('tier1-status');
+      if (projected >= 155) {
+        t1Status.textContent = '🏆 Tier 1 Cleared! Focus on Mains & Typing.';
+        t1Status.className = 'font-extrabold text-emerald-600';
+      } else if (projected >= 135) {
+        t1Status.textContent = '🔥 Borderline Safe. Push harder in Mocks.';
+        t1Status.className = 'font-extrabold text-indigo-600';
+      } else {
+        t1Status.textContent = `🔨 ${155 - projected} Marks away from Gen Female Cutoff.`;
+        t1Status.className = 'font-extrabold text-amber-600';
+      }
+
+      // Typing speed logic
+      document.getElementById('val-typing-speed').textContent = `${state.typingSpeed} WPM`;
+      document.getElementById('typing-wpm-display').textContent = state.typingSpeed;
+      const typeStatus = document.getElementById('typing-status');
+      if (state.typingSpeed >= 35) {
+        typeStatus.textContent = '✅ LDC Qualified';
+        typeStatus.className = 'font-extrabold text-emerald-600';
+      } else {
+        typeStatus.textContent = 'Needs Work (Target 35)';
+        typeStatus.className = 'font-extrabold text-amber-600';
+      }
+      
+      document.getElementById('val-computer-prep').textContent = `${state.computerPrep}%`;
+    }
+
+    function renderGrid() {
+      const grid = document.getElementById('roadmap-grid');
+      grid.innerHTML = '';
+      const q = state.search.trim().toLowerCase();
+
+      const filtered = SCHEDULE_DATA.filter(d => {
+        const s = state.days[d.id];
+        if (state.statusFilter !== 'ALL' && s.status !== state.statusFilter) return false;
+        if (state.subjFilter !== 'ALL' && d.subject !== state.subjFilter && (state.subjFilter !== 'MOCK' || d.type !== 'MOCK')) return false;
+        if (q && !d.title.toLowerCase().includes(q) && !(d.subject || '').toLowerCase().includes(q)) return false;
+        return true;
+      });
+
+      filtered.forEach(d => {
+        const s = state.days[d.id];
+        const card = document.createElement('div');
+        
+        const subjColorMap = {
+          QUANT: 'text-blue-700 bg-blue-100 border-blue-200',
+          ENGLISH: 'text-emerald-700 bg-emerald-100 border-emerald-200',
+          REASONING: 'text-purple-700 bg-purple-100 border-purple-200',
+          GA: 'text-amber-700 bg-amber-100 border-amber-200',
+          MOCK: 'text-rose-700 bg-rose-100 border-rose-200'
+        };
+
+        const borderColor = s.status === 'completed' ? 'border-emerald-400 bg-emerald-50/40' : 'border-white/95';
+        card.className = `glass-card rounded-3xl p-5 flex flex-col justify-between gap-4 border-2 ${borderColor}`;
+
+        if (d.type === 'MOCK') {
+          card.innerHTML = `
+            <div>
+              <div class="flex items-center justify-between gap-2 mb-3">
+                <span class="text-xs font-extrabold font-mono text-rose-800 bg-rose-100 px-2.5 py-1 rounded-lg">Day ${d.dayNum}</span>
+                <span class="text-[10px] font-extrabold uppercase tracking-wider px-2.5 py-1 rounded-lg bg-rose-500 text-white shadow-sm">🎯 MOCK TEST</span>
+              </div>
+              <h3 class="text-lg font-extrabold text-slate-900">${d.title}</h3>
+              <p class="text-xs font-medium text-slate-600 mt-1">${d.note}</p>
+            </div>
+            <div class="space-y-3 pt-3 border-t border-slate-200/60">
+              <div class="flex items-center justify-between bg-white/80 p-3 rounded-2xl border border-slate-200/80">
+                <span class="text-xs font-extrabold text-slate-700">Score Out of 200</span>
+                <div class="flex items-center gap-1.5">
+                  <input type="number" min="0" max="200" placeholder="0" value="${s.mockScore}" data-id="${d.id}" data-action="mock-score" class="w-16 px-2 py-1 rounded-xl text-sm font-extrabold font-mono text-right bg-slate-50 border border-slate-300 focus:outline-none focus:ring-2 focus:ring-indigo-500" />
+                </div>
+              </div>
+            </div>
+          `;
+        } else {
+          const pyqPct = Math.min(100, Math.round(((Number(s.pyqs) || 0) / 50) * 100));
+          card.innerHTML = `
+            <div>
+              <div class="flex items-center justify-between gap-2 mb-2.5">
+                <span class="text-xs font-extrabold font-mono text-slate-600 bg-slate-100/90 px-2.5 py-1 rounded-lg">Day ${d.dayNum}</span>
+                <span class="text-[10px] font-extrabold uppercase px-2 py-0.5 rounded-md border ${subjColorMap[d.subject]}">${d.subject}</span>
+              </div>
+              <h3 class="text-base font-extrabold text-slate-900 leading-snug ${s.status === 'completed' ? 'line-through decoration-slate-400' : ''}">${d.title}</h3>
+              <p class="text-[11px] font-medium text-slate-500 mt-1">${d.note}</p>
+              <div class="mt-2 text-[10px] font-bold text-slate-400">📚 Source: ${d.book}</div>
+            </div>
+            
+            <div class="space-y-3.5 pt-3 border-t border-slate-200/60 mt-auto">
+              <div class="bg-white/80 p-3 rounded-2xl border border-slate-200/70 space-y-2">
+                <div class="flex items-center justify-between">
+                  <span class="text-[11px] font-extrabold text-slate-600 uppercase tracking-wider">Practice PYQs</span>
+                  <span class="text-xs font-extrabold font-mono ${s.pyqs >= 50 ? 'text-emerald-600' : 'text-slate-700'}">${s.pyqs} / 50</span>
+                </div>
+                <div class="w-full bg-slate-100 rounded-full h-2 overflow-hidden">
+                  <div class="bg-indigo-500 h-full rounded-full transition-all duration-300" style="width: ${pyqPct}%"></div>
+                </div>
+                <div class="flex items-center gap-1.5 pt-0.5">
+                  <button data-id="${d.id}" data-action="pyq-add-10" class="flex-1 py-1 rounded-lg text-xs font-extrabold text-slate-700 bg-slate-100 hover:bg-slate-200 transition">+10</button>
+                  <button data-id="${d.id}" data-action="pyq-max" class="flex-1 py-1 rounded-lg text-xs font-extrabold text-white bg-emerald-600 hover:bg-emerald-500 shadow-sm transition">Done ✓</button>
+                </div>
+              </div>
+            </div>
+          `;
+        }
+
+        grid.appendChild(card);
+      });
+    }
+
+    document.getElementById('roadmap-grid').addEventListener('click', e => {
+      const btn = e.target.closest('button[data-action]');
+      if (!btn) return;
+      const id = btn.getAttribute('data-id');
+      const action = btn.getAttribute('data-action');
+      const dayObj = state.days[id];
+
+      if (action === 'pyq-add-10') {
+        dayObj.pyqs = Math.min(50, (Number(dayObj.pyqs) || 0) + 10);
+        if (dayObj.pyqs >= 50 && dayObj.status !== 'completed') {
+          dayObj.status = 'completed';
+          fireConfetti();
+          showToast('Topic Completed!', '🔥');
+        }
+        saveState();
+        renderGrid();
+      } else if (action === 'pyq-max') {
+        dayObj.pyqs = 50;
+        dayObj.status = 'completed';
+        fireConfetti();
+        showToast('Topic Mastered!', '🚀');
+        saveState();
+        renderGrid();
+      }
+    });
+
+    document.getElementById('roadmap-grid').addEventListener('input', e => {
+      if (e.target.getAttribute('data-action') === 'mock-score') {
+        const id = e.target.getAttribute('data-id');
+        state.days[id].mockScore = e.target.value;
+        if (e.target.value !== '' && state.days[id].status !== 'completed') {
+          state.days[id].status = 'completed';
+        }
+        saveState();
+      }
+    });
+
+    document.getElementById('status-tabs').addEventListener('click', e => {
+      const btn = e.target.closest('.status-tab');
+      if (!btn) return;
+      document.querySelectorAll('.status-tab').forEach(b => b.classList.replace('bg-white', 'text-slate-600'));
+      document.querySelectorAll('.status-tab').forEach(b => b.classList.replace('text-slate-900', 'text-slate-600'));
+      document.querySelectorAll('.status-tab').forEach(b => b.classList.replace('shadow-sm', 'border-transparent'));
+      
+      btn.className = 'status-tab bg-white text-slate-900 shadow-sm px-3.5 py-1.5 rounded-lg text-xs font-extrabold transition whitespace-nowrap';
+      state.statusFilter = btn.getAttribute('data-status');
+      renderGrid();
+    });
+
+    document.getElementById('subject-tabs').addEventListener('click', e => {
+      const btn = e.target.closest('.subj-tab');
+      if (!btn) return;
+      document.querySelectorAll('.subj-tab').forEach(b => b.className = 'subj-tab text-slate-600 hover:text-slate-900 px-3 py-1.5 rounded-lg text-xs font-bold transition');
+      btn.className = 'subj-tab bg-white text-slate-900 shadow-sm px-3 py-1.5 rounded-lg text-xs font-extrabold transition';
+      state.subjFilter = btn.getAttribute('data-subj');
+      renderGrid();
+    });
+
+    document.getElementById('search-input').addEventListener('input', e => {
+      state.search = e.target.value;
+      renderGrid();
+    });
+
+    document.getElementById('slider-typing-speed').addEventListener('input', e => {
+      state.typingSpeed = Number(e.target.value);
+      saveState();
+    });
+
+    document.getElementById('slider-computer-prep').addEventListener('input', e => {
+      state.computerPrep = Number(e.target.value);
+      saveState();
+    });
+
+    window.addEventListener('DOMContentLoaded', () => {
+      initState();
+      updateTimers();
+      setInterval(updateTimers, 1000);
+      updateDashboard();
+      renderGrid();
+    });
+  </script>
+</body>
+</html>
